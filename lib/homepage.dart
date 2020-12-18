@@ -1,7 +1,9 @@
 import 'dart:async';
+
 import 'package:flappy_bird/bird.dart';
 import 'package:flutter/material.dart';
-import 'package:flappy_bird/barrier.dart';
+
+import 'barriers.dart';
 
 class HomePage extends StatefulWidget {
   @override
@@ -9,22 +11,32 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-
-  //variables for physics and moves of the bird
   static double birdYaxis = 0;
-  double initialHeight = birdYaxis;
   double time = 0;
   double height = 0;
-  double timeChangeRate = 0.007;
-  //to manage the status of the game
+  double initialHeight = birdYaxis;
   bool gameHasStarted = false;
-  //variables for barriers
-  static double barrierXone = 1;
-  double barrierXtwo = barrierXone + 1;
-  double barrierXthree = barrierXone + 2;
+  double barrierXone = 1.8;
+  double barrierXtwo = 1.8 + 1.5;
+  double barrierXthree = 1.8 + 3;
+  bool gameStarted = false;
+  int score = 0;
+  int highscore = 0;
 
-  //simulation of gravity
-  double gravityFunction (time) => -4.9 * time * time + 2 * time;
+  @override
+  void initState() {
+    setState(() {
+      birdYaxis = 0;
+      time = 0;
+      height = 0;
+      initialHeight = birdYaxis;
+      barrierXone = 1.8;
+      barrierXtwo = 1.8 + 1.5;
+      barrierXthree = 1.8 + 3;
+      gameStarted = false;
+      score = 0;
+    });
+  }
 
   void jump() {
     setState(() {
@@ -33,46 +45,94 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+  bool checkLose() {
+    if (barrierXone < 0.2 && barrierXone > -0.2) {
+      if (birdYaxis < -0.3 || birdYaxis > 0.7) {
+        return true;
+      }
+    }
+    if (barrierXtwo < 0.2 && barrierXtwo > -0.2) {
+      if (birdYaxis < -0.8 || birdYaxis > 0.4) {
+        return true;
+      }
+    }
+    if (barrierXthree < 0.2 && barrierXthree > -0.2) {
+      if (birdYaxis < -0.4 || birdYaxis > 0.7) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   void startGame() {
     gameHasStarted = true;
-    Timer.periodic(Duration(milliseconds: 5), (timer) {
-      time += timeChangeRate;
-      height = gravityFunction(time);
+    Timer.periodic(Duration(milliseconds: 20), (timer) {
+      time += 0.015;
+      height = -4.9 * time * time + 2.8 * time;
       setState(() {
         birdYaxis = initialHeight - height;
-      });
-
-      setState(() {
-        if (barrierXone < -1.1) {
-          barrierXone += 3; 
+        if (barrierXone < -2) {
+          score++;
+          barrierXone += 4.5;
         } else {
-          barrierXone -= 0.01;
+          barrierXone -= 0.02;
+        }
+        if (barrierXtwo < -2) {
+          score++;
+
+          barrierXtwo += 4.5;
+        } else {
+          barrierXtwo -= 0.02;
+        }
+        if (barrierXthree < -2) {
+          score++;
+
+          barrierXthree += 4.5;
+        } else {
+          barrierXthree -= 0.02;
         }
       });
-
-      setState(() {
-        if (barrierXtwo < -1.1) {
-          barrierXtwo += 3; 
-        } else {
-          barrierXtwo -= 0.01;
-        }
-      });
-
-      setState(() {
-        if (barrierXthree < -1.1) {
-          barrierXthree += 3; 
-        } else {
-          barrierXthree -= 0.01;
-        }
-      });
-
-
-
-      if (birdYaxis > 1) {
+      if (birdYaxis > 1.3 || checkLose()) {
         timer.cancel();
-        gameHasStarted = false;
+        _showDialog();
       }
     });
+  }
+
+  void _showDialog() {
+    showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            backgroundColor: Colors.brown,
+            title: Text(
+              "GAME OVER",
+              style: TextStyle(color: Colors.white),
+            ),
+            content: Text(
+              "Score: " + score.toString(),
+              style: TextStyle(color: Colors.white),
+            ),
+            actions: [
+              FlatButton(
+                child: Text(
+                  "PLAY AGAIN",
+                  style: TextStyle(color: Colors.white),
+                ),
+                onPressed: () {
+                  if (score > highscore) {
+                    highscore = score;
+                  }
+                  initState();
+                  setState(() {
+                    gameHasStarted = false;
+                  });
+                  Navigator.of(context).pop();
+                },
+              )
+            ],
+          );
+        });
   }
 
   @override
@@ -87,114 +147,105 @@ class _HomePageState extends State<HomePage> {
       },
       child: Scaffold(
         body: Column(
-          children: <Widget>[
+          children: [
             Expanded(
-              flex: 2,
-              child: Stack(
-                children: [
-                  AnimatedContainer(
-                      alignment: Alignment(0,birdYaxis),
+                flex: 2,
+                child: Stack(
+                  children: [
+                    AnimatedContainer(
+                      alignment: Alignment(0, birdYaxis),
                       duration: Duration(milliseconds: 0),
-                      color: Colors.blue, 
+                      color: Colors.blue,
                       child: MyBird(),
                     ),
-                  Container(
-                    alignment: Alignment(0, -0.3),
-                    child: gameHasStarted ? Text(' ') : Text(
-                        'TAP TO PLAY',
-                        style: TextStyle(
-                          fontSize: 20,
-                          color: Colors.white
-                        ),
+                    Container(
+                      alignment: Alignment(0, -0.3),
+                      child: gameHasStarted
+                          ? Text(" ")
+                          : Text("T A P  T O  P L A Y",
+                              style:
+                                  TextStyle(fontSize: 20, color: Colors.white)),
                     ),
-                  ),
-                  AnimatedContainer(
-                    alignment: Alignment(barrierXone, 1.1),
-                    duration: Duration(milliseconds: 0),
-                    child: MyBarrier(
-                        
+                    AnimatedContainer(
+                      alignment: Alignment(barrierXone, 1.1),
+                      duration: Duration(milliseconds: 0),
+                      child: MyBarrier(
                         size: 200.0,
+                      ),
                     ),
-                  ),
-                  AnimatedContainer(
-                    alignment: Alignment(barrierXone, -1.1),
-                    duration: Duration(milliseconds: 0),
-                    child: MyBarrier(
-                        
+                    AnimatedContainer(
+                      alignment: Alignment(barrierXtwo, 1.1),
+                      duration: Duration(milliseconds: 0),
+                      child: MyBarrier(
+                        size: 300.0,
+                      ),
+                    ),
+                    AnimatedContainer(
+                      alignment: Alignment(barrierXthree, 1.1),
+                      duration: Duration(milliseconds: 0),
+                      child: MyBarrier(
+                        size: 100.0,
+                      ),
+                    ),
+                    AnimatedContainer(
+                      alignment: Alignment(barrierXone, -1.1),
+                      duration: Duration(milliseconds: 0),
+                      child: MyBarrier(
+                        size: 150.0,
+                      ),
+                    ),
+                    AnimatedContainer(
+                      alignment: Alignment(barrierXtwo, -1.1),
+                      duration: Duration(milliseconds: 0),
+                      child: MyBarrier(
+                        size: 100.0,
+                      ),
+                    ),
+                    AnimatedContainer(
+                      alignment: Alignment(barrierXthree, -1.1),
+                      duration: Duration(milliseconds: 0),
+                      child: MyBarrier(
                         size: 200.0,
+                      ),
                     ),
-                  ),
-                  AnimatedContainer(
-                    alignment: Alignment(barrierXtwo, 1.1),
-                    duration: Duration(milliseconds: 0),
-                    child: MyBarrier(
-                        
-                        size: 250.0,
-                    ),
-                  ),        
-                  AnimatedContainer(
-                    alignment: Alignment(barrierXtwo, -1.1),
-                    duration: Duration(milliseconds: 0),
-                    child: MyBarrier(
-                        
-                        size: 140.0,
-                    ),
-                  ),  
-                  AnimatedContainer(
-                    alignment: Alignment(barrierXthree, 1.1),
-                    duration: Duration(milliseconds: 0),
-                    child: MyBarrier(
-                        
-                        size: 120.0,
-                    ),
-                  ),        
-                  AnimatedContainer(
-                    alignment: Alignment(barrierXthree, -1.1),
-                    duration: Duration(milliseconds: 0),
-                    child: MyBarrier(
-                        
-                        size: 260.0,
-                    ),
-                  ),                                              
-                ],
-              ),
-              ),
-              Container(
-                height: 15.0,
-                color: Colors.green,
-              ),
-              Expanded(
-                child: Container(
-                  color: Colors.brown,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
+                  ],
+                )),
+            Container(
+              height: 15,
+              color: Colors.green,
+            ),
+            Expanded(
+              child: Container(
+                color: Colors.brown,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
                     Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text(
-                          'SCORE',
-                          style: TextStyle(color: Colors.white, fontSize: 20.0),
+                        Text("SCORE",
+                            style:
+                                TextStyle(color: Colors.white, fontSize: 20)),
+                        SizedBox(
+                          height: 20,
                         ),
-                        SizedBox(height: 20.0),
-                        Text(
-                          '0',
-                          style: TextStyle(color: Colors.white, fontSize: 30.0),
-                        ),
+                        Text(score.toString(),
+                            style:
+                                TextStyle(color: Colors.white, fontSize: 35)),
                       ],
                     ),
                     Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text(
-                          'BEST',
-                          style: TextStyle(color: Colors.white, fontSize: 20.0),
+                        Text("BEST",
+                            style:
+                                TextStyle(color: Colors.white, fontSize: 20)),
+                        SizedBox(
+                          height: 20,
                         ),
-                        SizedBox(height: 20.0),
-                        Text(
-                          '10',
-                          style: TextStyle(color: Colors.white, fontSize: 30.0),
-                        ),
+                        Text(highscore.toString(),
+                            style:
+                                TextStyle(color: Colors.white, fontSize: 35)),
                       ],
                     ),
                   ],
